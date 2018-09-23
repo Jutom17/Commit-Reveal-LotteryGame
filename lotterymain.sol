@@ -45,7 +45,7 @@ contract BetGame {
     }
     mapping(uint =>mapping(uint => BetCollection)) betCollection;
     mapping(address=>mapping (uint=>Player)) public players;
-    mapping(address=>uint) public playerBalance;
+    mapping(address=>uint) playerBalance;
     uint storedData;
     event FundTransfer(address backer, uint amount);
     
@@ -73,6 +73,8 @@ contract BetGame {
         //return players[msg.sender].balance;
     }
     
+
+    
     /*
     function GetGameInfo() public view returns(GameInfo)
     {
@@ -95,7 +97,7 @@ contract BetGame {
         require(!commitStage);
         initSeed=init;
         commitStage=true;
-        PreStage=false;
+       // PreStage=false;
         round++;
         delete betNumbers;
         //delete players;
@@ -122,6 +124,7 @@ contract BetGame {
     {
         //require(msg.value>1 finney);
         require(commitStage);
+        
        // require(betNumber<12);
        
     //    Player memory newplayer; 
@@ -142,11 +145,12 @@ contract BetGame {
         if(msg.value>0)
         {
             playerBalance[msg.sender]+=msg.value;
-            PoolBalance+=msg.value;
+          //  PoolBalance+=msg.value;
         }
         require(playerBalance[msg.sender]>=betCost);
         playerBalance[msg.sender]-=betCost;
         PoolBalance+=betCost;
+        PreStage=false;
         return true;
     }
     
@@ -155,9 +159,10 @@ contract BetGame {
     {
 
        // require(PreStage);
-        require(betNumbers.length>0);
+        //require(PoolBalance);
+        require(!PreStage);
         require(commitStage);
-        assert(!PreStage);
+        
         commitStage=false;
     }
     
@@ -218,7 +223,7 @@ contract BetGame {
         
         require(!buyed);
         
-        if (betNumber<betRange && betNumber>0)
+        if (betNumber<=betRange && betNumber>0)
         //string memory bet=uint2str(betNumber);
         {
             players[msg.sender][round].betNumbers.push(betNumber);
@@ -283,6 +288,18 @@ contract BetGame {
  //   function getSecretBet(address playerAddress) public view returns (bytes32[]) {
  //       return players[playerAddress].secertBet;
  //   }
+ 
+ 
+ 
+     function changeCost(uint cost) public onlyOwner
+    {
+        betCost=cost;
+    }
+    
+    function changeBetRange(uint range) public onlyOwner
+    {
+        betRange=range;
+    }
     
      function transferOwnership(address newOwner) onlyOwner public
     {
