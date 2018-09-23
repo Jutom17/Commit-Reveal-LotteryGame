@@ -43,7 +43,7 @@ contract BetGame {
      //  uint balance;
         uint [] betNumbers;
     }
-    mapping(uint => BetCollection) betCollection;
+    mapping(uint =>mapping(uint => BetCollection)) betCollection;
     mapping(address=>mapping (uint=>Player)) public players;
     mapping(address=>uint) public playerBalance;
     uint storedData;
@@ -68,7 +68,7 @@ contract BetGame {
     
     
     function()public payable {
-        PoolBalance+=msg.value;
+       // PoolBalance+=msg.value;
         playerBalance[msg.sender]+=msg.value;
         //return players[msg.sender].balance;
     }
@@ -82,19 +82,11 @@ contract BetGame {
     function payForOther(address addr) payable public returns(uint)
     {
         playerBalance[addr]+=msg.value;
-        PoolBalance+=msg.value;
+       // PoolBalance+=msg.value;
         return getPlayerBalance(addr);
     }
     
-    function ViewBet()  public view returns(bytes32[],uint[])
-    {
-        return ViewBet(msg.sender);
-    }
-    
-    function ViewBet(address addr)  public view returns(bytes32[],uint[])
-    {
-        return (players[addr][round].secertBet,players[msg.sender][round].betNumbers);
-    }
+
     
     function commitStart(bytes32 init) public onlyOwner
     {
@@ -105,6 +97,7 @@ contract BetGame {
         commitStage=true;
         PreStage=false;
         round++;
+        delete betNumbers;
         //delete players;
    //     Player memory player = Player(); 
      //   players[round].push(player);
@@ -153,6 +146,7 @@ contract BetGame {
         }
         require(playerBalance[msg.sender]>=betCost);
         playerBalance[msg.sender]-=betCost;
+        PoolBalance+=betCost;
         return true;
     }
     
@@ -161,6 +155,7 @@ contract BetGame {
     {
 
        // require(PreStage);
+        require(betNumbers.length>0);
         require(commitStage);
         assert(!PreStage);
         commitStage=false;
@@ -227,13 +222,14 @@ contract BetGame {
         //string memory bet=uint2str(betNumber);
         {
             players[msg.sender][round].betNumbers.push(betNumber);
-            betCollection[betNumber].betAddress.push(msg.sender);
+            betCollection[betNumber][round].betAddress.push(msg.sender);
             betNumbers.push(betNumber);
             return true;
         }
         else
         {
-            playerBalance[msg.sender]+=betCost;
+            revert();
+          //  playerBalance[msg.sender]+=betCost;
             return false;
         }
     }
@@ -244,6 +240,7 @@ contract BetGame {
        
         require(!commitStage);
         require(!PreStage);
+        
         uint playerseed;
         bytes32 randHash;
         uint winnercount;
@@ -254,13 +251,13 @@ contract BetGame {
         }
         randHash = keccak256(code, playerseed, block.number);
         winningNumber = uint(randHash) % betRange+1;
-        winnercount=betCollection[winningNumber].betAddress.length;
+        winnercount=betCollection[winningNumber][round].betAddress.length;
         if (winnercount>0)
         {
             uint prize=PoolBalance/winnercount;
             for(uint j=0;j<winnercount;j++)
             {
-               address winner= betCollection[winningNumber].betAddress[j];
+               address winner= betCollection[winningNumber][round].betAddress[j];
                playerBalance[winner]+=prize;
                PoolBalance-=prize;
             }
@@ -272,7 +269,15 @@ contract BetGame {
         return winningNumber;
     }
     
-
+    function ViewBet()  public view returns(bytes32[],uint[])
+    {
+        return ViewBet(msg.sender);
+    }
+    
+    function ViewBet(address addr)  public view returns(bytes32[],uint[])
+    {
+        return (players[addr][round].secertBet,players[msg.sender][round].betNumbers);
+    }
    
 
  //   function getSecretBet(address playerAddress) public view returns (bytes32[]) {
@@ -292,7 +297,7 @@ contract BetGame {
                 msg.sender.transfer(amount);
                 emit FundTransfer(msg.sender, amount);
                 playerBalance[msg.sender]-=amount;
-                PoolBalance-=amount;
+             //   PoolBalance-=amount;
     }
     
     function getPlayerBalance(address playerAddress)public view returns(uint){
